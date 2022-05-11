@@ -12,19 +12,26 @@ module.exports.test = async (req, res) => {
 module.exports.importMachine = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
-    await request.query(`USE [DragDrop]
+    console.log(`USE [DragDrop]
     GO
     
     INSERT INTO [dbo].[Machine]
                ([name]
-               ,[taskNumber])
+               )
          VALUES
-               (${req.body.name}
-               ,${req.body.taskNumber})
-    GO
-    
-    
+               ('${req.body.machineName}'
+               )
     `);
+
+    await request.query(`
+    INSERT INTO [dbo].[Machine]
+               ([name]
+               )
+         VALUES
+               ('${req.body.machineName}'
+               )
+    `);
+    
     res.json('inserted successfully')
 }
 module.exports.importTasks = async (req, res) => {
@@ -40,13 +47,11 @@ module.exports.importTasks = async (req, res) => {
                ,[endDate]
                ,[machineId])
          VALUES
-               (${req.body.name}
-               ,${req.body.description}
-               ,${req.body.duration}
-               ,${req.body.endDate}
-               ,${req.body.machineId})
-    GO
-    
+               ('${req.body.name}'
+               ,'${req.body.description}'
+               ,'${req.body.duration}'
+               ,'${req.body.endDate}'
+               ,'${req.body.machineId}')
     `);
     res.json('inserted successfully')
 }

@@ -1,6 +1,6 @@
 {
   "user": "sa",
   "password": "P@ssw0rd",
-  "server": "MAHMOUD-GAMAL",
+  "server": "localhost",
   "database": "DragDrop"
 }
