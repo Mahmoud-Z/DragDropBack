@@ -37,20 +37,20 @@ module.exports.importMachine = async (req, res) => {
 module.exports.importTasks = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
-    await request.query(`USE [DragDrop]
-    GO
+    let date=new Date().getTime();
+    date += ((req.body.TaskDurationH*60*60*1000)+(req.body.TaskDurationM*60*1000))
+    console.log(new Date(date));
+    await request.query(`
     
     INSERT INTO [dbo].[Task]
                ([name]
-               ,[description]
                ,[duration]
                ,[endDate]
                ,[machineId])
          VALUES
                ('${req.body.name}'
-               ,'${req.body.description}'
-               ,'${req.body.duration}'
-               ,'${req.body.endDate}'
+               ,'${req.body.TaskDurationH}:${req.body.TaskDurationM}'
+               ,'${new Date(date).toISOString()}'
                ,'${req.body.machineId}')
     `);
     res.json('inserted successfully')
@@ -59,11 +59,29 @@ module.exports.getMachine = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
     let data=await request.query(`select * from Machine`);
-    res.json(data)
+    res.json(data.recordset)
 }
 module.exports.getTasks = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
-    let data=await request.query(`select * from Task`);
-    res.json(data)
+    let machineData=await request.query(`select * from Machine`);
+    let taskData=await request.query(`select * from Task`);
+    // let machineId=[]
+    // let allData={}
+    // console.log(machineData);
+    // for (let i = 0; i < machineData.recordset.length; i++) {
+    //     machineId.push(machineData.recordset[i].id)
+    //     allData[machineData.recordset[i].id]=[]
+    // }
+    // console.log(machineId);
+    // for (let i = 0; i < taskData.recordset.length; i++) {
+    //     for (let j = 0; j < machineId.length; j++) {
+    //         if(machineId[j]==taskData.recordset[i].machineId){
+    //             console.log(machineId[j],taskData.recordset[i].machineId);
+    //             allData[machineId[j]].push(taskData.recordset[i])
+    //             delete allData.machineId
+    //         }
+    //     }
+    // }
+    res.json(taskData.recordset)
 }
