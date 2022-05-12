@@ -66,22 +66,44 @@ module.exports.getTasks = async (req, res) => {
     let request = new sql.Request(sqlPool)
     let machineData=await request.query(`select * from Machine`);
     let taskData=await request.query(`select * from Task`);
-    // let machineId=[]
-    // let allData={}
-    // console.log(machineData);
-    // for (let i = 0; i < machineData.recordset.length; i++) {
-    //     machineId.push(machineData.recordset[i].id)
-    //     allData[machineData.recordset[i].id]=[]
-    // }
-    // console.log(machineId);
-    // for (let i = 0; i < taskData.recordset.length; i++) {
-    //     for (let j = 0; j < machineId.length; j++) {
-    //         if(machineId[j]==taskData.recordset[i].machineId){
-    //             console.log(machineId[j],taskData.recordset[i].machineId);
-    //             allData[machineId[j]].push(taskData.recordset[i])
-    //             delete allData.machineId
-    //         }
-    //     }
-    // }
-    res.json(taskData.recordset)
+    let machineId=[]
+    let allData={}
+    console.log(machineData);
+    for (let i = 0; i < machineData.recordset.length; i++) {
+        machineId.push(machineData.recordset[i].id)
+        allData[machineData.recordset[i].id]=[]
+    }
+    console.log(machineId);
+    for (let i = 0; i < taskData.recordset.length; i++) {
+        for (let j = 0; j < machineId.length; j++) {
+            if(machineId[j]==taskData.recordset[i].machineId){
+                console.log(machineId[j],taskData.recordset[i].machineId);
+                allData[machineId[j]].push(taskData.recordset[i])
+                delete allData.machineId
+            }
+        }
+    }
+    res.json(allData)
+}
+module.exports.deleteMachine = async (req, res) => {
+    console.log(req.body);
+    let sqlPool = await mssql.GetCreateIfNotExistPool(config)
+    let request = new sql.Request(sqlPool)
+    await request.query(`delete from Machine where id=${req.body.id}
+                        delete from Task where machineId=${req.body.id}`);
+    res.json('Deleted successfully')
+}
+module.exports.deleteTask = async (req, res) => {
+    console.log(req.body);
+    let sqlPool = await mssql.GetCreateIfNotExistPool(config)
+    let request = new sql.Request(sqlPool)
+    await request.query(`delete from Task where id=${req.body.id}`);
+    res.json('Deleted successfully')
+}
+module.exports.updateTask = async (req, res) => {
+    console.log(req.body);
+    let sqlPool = await mssql.GetCreateIfNotExistPool(config)
+    let request = new sql.Request(sqlPool)
+    await request.query(`UPDATE [dbo].[Task] SET [machineId]=${req.body.machineId} WHERE id=${req.body.taskId}`);
+    res.json('Deleted successfully')
 }
