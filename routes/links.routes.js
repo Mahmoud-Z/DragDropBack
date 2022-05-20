@@ -8,5 +8,6 @@ appRoutes.get("/getTasks", controller.getTasks)
 appRoutes.post("/deleteMachine", controller.deleteMachine)
 appRoutes.post("/deleteTask", controller.deleteTask)
 appRoutes.post("/updateTask", controller.updateTask)
+appRoutes.post("/changeTime", controller.changeTime)
 
 module.exports = appRoutes;

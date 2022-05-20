@@ -5,7 +5,6 @@ const e = require('cors');
 const sql = require('mssql')//call for using sql module
 let mssql = require('../configuration/mssql-pool-management.js')
 const config = require('../Configuration/config')//call for using configuration module that we create it to store database conaction
-
 module.exports.test = async (req, res) => {
     res.json('I am alive')
 }
@@ -119,5 +118,24 @@ module.exports.updateTask = async (req, res) => {
     }
     await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskId.join(',')}' WHERE id=${req.body.machineId}`);
     await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskIDsBefore.join(',')}' WHERE id=${req.body.machineIdBefore}`);
+    res.json('Deleted successfully')
+}
+module.exports.changeTime = async (req, res) => {
+    let sqlPool = await mssql.GetCreateIfNotExistPool(config)
+    let request = new sql.Request(sqlPool)
+    console.log(req.body);
+    let newTask=await (await request.query(`select * from Task where id=${req.body.id}`)).recordset[0];
+    let oldTask=await (await request.query(`select * from Task where id=${req.body.oldTask}`)).recordset[0];
+    let newEndDate=new Date(new Date().getTime() + parseInt(newTask.duration.split(':')[0]) * (60 * 60 * 1000) + parseInt(newTask.duration.split(':')[1])* ( 60 * 1000))
+    await request.query(`UPDATE [dbo].[Task] SET [endDate]='${newEndDate.toISOString()}' WHERE id=${req.body.id}`);
+    var seconds = Math.floor((new Date(oldTask.endDate).getTime() - (new Date().getTime()))/1000);
+    var minutes = Math.floor(seconds/60);
+    var hours = Math.floor(minutes/60);
+    var days = Math.floor(hours/24);
+    hours = hours-(days*24);
+    minutes = minutes-(days*24*60)-(hours*60);
+    await request.query(`UPDATE [dbo].[Task] SET [duration]='${hours+':'+minutes}' WHERE id=${req.body.oldTask}`);
+    // await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskId.join(',')}' WHERE id=${req.body.machineId}`);
+    // await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskIDsBefore.join(',')}' WHERE id=${req.body.machineIdBefore}`);
     res.json('Deleted successfully')
 }
