@@ -12,16 +12,6 @@ module.exports.test = async (req, res) => {
 module.exports.importMachine = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
-    console.log(`USE [DragDrop]
-    GO
-    
-    INSERT INTO [dbo].[Machine]
-               ([name]
-               )
-         VALUES
-               ('${req.body.machineName}'
-               )
-    `);
 
     await request.query(`
     INSERT INTO [dbo].[Machine]
@@ -38,8 +28,8 @@ module.exports.importTasks = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
     let date=new Date().getTime();
+    let tasksOrder;
     date += ((req.body.TaskDurationH*60*60*1000)+(req.body.TaskDurationM*60*1000))
-    console.log(new Date(date));
     await request.query(`
     
     INSERT INTO [dbo].[Task]
@@ -53,6 +43,12 @@ module.exports.importTasks = async (req, res) => {
                ,'${new Date(date).toISOString()}'
                ,'${req.body.machineId}')
     `);
+    let taskId=await (await request.query(`select max(id) from Task`)).recordset[0][""]
+    if (await (await request.query(`select taskNumber from Machine where id=${req.body.machineId}`)).recordset[0].taskNumber==null || await (await request.query(`select taskNumber from Machine where id=${req.body.machineId}`)).recordset[0].taskNumber=='') 
+        tasksOrder=taskId
+    else
+        tasksOrder=await (await request.query(`select taskNumber from Machine where id=${req.body.machineId}`)).recordset[0].taskNumber+","+taskId
+    await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${tasksOrder}' WHERE id=${req.body.machineId}`);
     res.json('inserted successfully')
 }
 module.exports.getMachine = async (req, res) => {
@@ -68,16 +64,13 @@ module.exports.getTasks = async (req, res) => {
     let taskData=await request.query(`select * from Task`);
     let machineId=[]
     let allData={}
-    console.log(machineData);
     for (let i = 0; i < machineData.recordset.length; i++) {
         machineId.push(machineData.recordset[i].id)
         allData[machineData.recordset[i].id]=[]
     }
-    console.log(machineId);
     for (let i = 0; i < taskData.recordset.length; i++) {
         for (let j = 0; j < machineId.length; j++) {
             if(machineId[j]==taskData.recordset[i].machineId){
-                console.log(machineId[j],taskData.recordset[i].machineId);
                 allData[machineId[j]].push(taskData.recordset[i])
                 delete allData.machineId
             }
@@ -94,14 +87,24 @@ module.exports.deleteMachine = async (req, res) => {
     res.json('Deleted successfully')
 }
 module.exports.deleteTask = async (req, res) => {
-    console.log(req.body);
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
+    let mid =await (await request.query(`select machineId from Task where id=${req.body.id}`)).recordset[0].machineId
+    let tasksOrder=await (await request.query(`select taskNumber from Machine where id=${mid}`)).recordset[0].taskNumber
+    console.log(tasksOrder,tasksOrder.split(','),'before');
+    console.log(tasksOrder.indexOf(req.body.id));
+    let newIds=[];
+    for (let i = 0; i < tasksOrder.split(',').length; i++) {
+        if (tasksOrder.split(',')[i]!=req.body.id) {
+            newIds.push(tasksOrder.split(',')[i])
+        }
+    }
+    console.log(newIds.join(','));
+    await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${newIds.join(',')}' WHERE id=${mid}`);
     await request.query(`delete from Task where id=${req.body.id}`);
     res.json('Deleted successfully')
 }
 module.exports.updateTask = async (req, res) => {
-    console.log(req.body);
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
     await request.query(`UPDATE [dbo].[Task] SET [machineId]=${req.body.machineId} WHERE id=${req.body.taskId}`);
