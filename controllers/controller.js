@@ -71,8 +71,13 @@ module.exports.getTasks = async (req, res) => {
     for (let i = 0; i < taskData.recordset.length; i++) {
         for (let j = 0; j < machineId.length; j++) {
             if(machineId[j]==taskData.recordset[i].machineId){
-                allData[machineId[j]].push(taskData.recordset[i])
-                delete allData.machineId
+                for (let k = 0; k < machineData.recordset[j].taskNumber.split(',').length; k++) {
+                    if (machineData.recordset[j].taskNumber.split(',')[k]==taskData.recordset[i].id) {
+                        allData[machineId[j]][ machineData.recordset[j].taskNumber.split(',').indexOf(machineData.recordset[j].taskNumber.split(',')[k])]=taskData.recordset[i]
+                    }
+                }
+                // allData[machineId[j]].push(taskData.recordset[i])
+                // delete allData.machineId
             }
         }
     }
@@ -89,6 +94,7 @@ module.exports.deleteMachine = async (req, res) => {
 module.exports.deleteTask = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
+    console.log(await (await request.query(`select machineId from Task where id=${req.body.id}`)));
     let mid =await (await request.query(`select machineId from Task where id=${req.body.id}`)).recordset[0].machineId
     let tasksOrder=await (await request.query(`select taskNumber from Machine where id=${mid}`)).recordset[0].taskNumber
     console.log(tasksOrder,tasksOrder.split(','),'before');
@@ -107,6 +113,11 @@ module.exports.deleteTask = async (req, res) => {
 module.exports.updateTask = async (req, res) => {
     let sqlPool = await mssql.GetCreateIfNotExistPool(config)
     let request = new sql.Request(sqlPool)
-    await request.query(`UPDATE [dbo].[Task] SET [machineId]=${req.body.machineId} WHERE id=${req.body.taskId}`);
+    console.log(req.body);
+    for (let i = 0; i < req.body.taskId.length; i++) {
+        await request.query(`UPDATE [dbo].[Task] SET [machineId]=${req.body.machineId} WHERE id=${req.body.taskId[i]}`);
+    }
+    await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskId.join(',')}' WHERE id=${req.body.machineId}`);
+    await request.query(`UPDATE [dbo].[Machine] SET [taskNumber]='${req.body.taskIDsBefore.join(',')}' WHERE id=${req.body.machineIdBefore}`);
     res.json('Deleted successfully')
 }
